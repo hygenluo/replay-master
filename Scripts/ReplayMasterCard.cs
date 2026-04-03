@@ -19,13 +19,17 @@ public sealed class ReplayMasterCard : CustomCardModel
 
     public override string PortraitPath => "res://ReplayMaster/images/cards/ReplayMaster.png";
 
-    public override IEnumerable<CardKeyword> CanonicalKeywords => [CardKeyword.Innate];
+    public override IEnumerable<CardKeyword> CanonicalKeywords =>
+        [CardKeyword.Innate, CardKeyword.Retain];
 
     public override IEnumerable<DynamicVar> CanonicalVars =>
         [new IntVar(ReplayKey, 2m)];
 
     public override IEnumerable<IHoverTip> ExtraHoverTips =>
-        [HoverTipFactory.Static(StaticHoverTip.ReplayStatic)];
+    [
+        HoverTipFactory.Static(StaticHoverTip.ReplayStatic),
+        HoverTipFactory.FromKeyword(CardKeyword.Retain)
+    ];
 
     public ReplayMasterCard()
         : base(1, CardType.Skill, CardRarity.Rare, TargetType.Self)
@@ -64,6 +68,15 @@ public sealed class ReplayMasterCard : CustomCardModel
             NCard.FindOnTable(target)?.UpdateVisuals(PileType.Hand, CardPreviewMode.Normal);
             CardCmd.Preview(target);
         }
+    }
+
+    public override async Task AfterCardPlayedLate(PlayerChoiceContext choiceContext, CardPlay cardPlay)
+    {
+        if (!ReferenceEquals(cardPlay.Card, this))
+            return;
+
+        if (Pile?.Type == PileType.Play)
+            await CardPileCmd.Add(this, PileType.Hand);
     }
 
     public override void OnUpgrade()
