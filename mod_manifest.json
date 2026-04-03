@@ -1,0 +1,11 @@
+{
+  "id": "ReplayMaster",
+  "name": "重放大师",
+  "author": "ReplayMaster",
+  "description": "每名角色开局卡组额外一张无色技能「重放大师」：固有，选择手牌一张牌获得重放层数。",
+  "version": "1.0.0",
+  "has_pck": true,
+  "has_dll": true,
+  "dependencies": ["BaseLib"],
+  "affects_gameplay": true
+}

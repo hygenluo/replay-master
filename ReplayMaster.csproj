@@ -1,0 +1,80 @@
+﻿<Project Sdk="Godot.NET.Sdk/4.5.1">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>12</LangVersion>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <DefaultItemExcludes>$(DefaultItemExcludes);packages/**</DefaultItemExcludes>
+
+    <Sts2Dir Condition="'$(Sts2Dir)' == ''">D:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2Dir>
+    <Sts2DataDir>$(Sts2Dir)\data_sts2_windows_x86_64</Sts2DataDir>
+    <ModsPath>$(Sts2Dir)\mods\</ModsPath>
+
+    <!-- 与 PackageReference 一致；BaseLib 复制路径禁止再用 ** 匹配多版本 -->
+    <BaseLibNuGetVersion>0.2.0</BaseLibNuGetVersion>
+    <BaseLibNuGetDir>$(NuGetPackageRoot)alchyr.sts2.baselib\$(BaseLibNuGetVersion)\</BaseLibNuGetDir>
+
+    <NoWarn>$(NoWarn);MSB3270</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(Sts2DataDir)')">
+    <Reference Include="0Harmony">
+      <HintPath>$(Sts2DataDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="sts2">
+      <HintPath>$(Sts2DataDir)\sts2.dll</HintPath>
+      <Private>false</Private>
+      <Publicize>true</Publicize>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Alchyr.Sts2.BaseLib" Version="$(BaseLibNuGetVersion)" PrivateAssets="All" />
+    <PackageReference Include="Alchyr.Sts2.ModAnalyzers" Version="0.1.6" PrivateAssets="All" />
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <AdditionalFiles Include="ReplayMaster\localization\**\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="mod_manifest.json" />
+    <None Include="export_presets.cfg" />
+    <None Include="ReplayMaster\**\*" Exclude="ReplayMaster\**\*.cs" />
+  </ItemGroup>
+
+  <Target Name="CopyToModsFolderOnBuild" AfterTargets="Build" Condition="Exists('$(Sts2DataDir)')">
+    <Message Text="Deploying ReplayMaster + BaseLib $(BaseLibNuGetVersion) to mods (clean copy)." Importance="high" />
+
+    <Error
+      Text="BaseLib NuGet $(BaseLibNuGetVersion) not found at $(BaseLibNuGetDir)lib\net9.0\BaseLib.dll. Run dotnet restore."
+      Condition="!Exists('$(BaseLibNuGetDir)lib\net9.0\BaseLib.dll')" />
+
+    <RemoveDir Directories="$(ModsPath)ReplayMaster" Condition="Exists('$(ModsPath)ReplayMaster')" />
+    <RemoveDir Directories="$(ModsPath)BaseLib" Condition="Exists('$(ModsPath)BaseLib')" />
+
+    <MakeDir Directories="$(ModsPath)ReplayMaster" />
+    <MakeDir Directories="$(ModsPath)BaseLib" />
+
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ModsPath)ReplayMaster\" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(ModsPath)ReplayMaster\" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+    <Copy SourceFiles="mod_manifest.json" DestinationFolder="$(ModsPath)ReplayMaster\" />
+
+    <Copy SourceFiles="$(BaseLibNuGetDir)lib\net9.0\BaseLib.dll" DestinationFolder="$(ModsPath)BaseLib\" />
+    <Copy SourceFiles="$(BaseLibNuGetDir)Content\BaseLib.pck" DestinationFolder="$(ModsPath)BaseLib\" />
+    <Copy SourceFiles="$(BaseLibNuGetDir)Content\BaseLib.json" DestinationFolder="$(ModsPath)BaseLib\" />
+
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\ReplayMaster.pck" DestinationFolder="$(ModsPath)ReplayMaster\" Condition="Exists('$(MSBuildProjectDirectory)\ReplayMaster.pck')" />
+    <Warning
+      Text="ReplayMaster.pck not found next to .csproj. Export PCK with Godot to mods/ReplayMaster or copy ReplayMaster.pck to project root before build."
+      Condition="!Exists('$(MSBuildProjectDirectory)\ReplayMaster.pck')" />
+  </Target>
+
+  <Target Name="WarnMissingSts2" BeforeTargets="Build" Condition="!Exists('$(Sts2DataDir)')">
+    <Warning Text="Slay the Spire 2 data not found at $(Sts2DataDir). Set Sts2Dir or install the game; build may fail." />
+  </Target>
+</Project>

@@ -1,0 +1,5 @@
+{
+  "REPLAYMASTER-REPLAY_MASTER_CARD.title": "Replay Master",
+  "REPLAYMASTER-REPLAY_MASTER_CARD.description": "Choose a card in your hand to gain [gold]{Replay:diff()}[/gold] [gold]Replay[/gold].",
+  "REPLAYMASTER_HAND_SELECT_REPLAY": "Choose a card in your hand to gain Replay."
+}

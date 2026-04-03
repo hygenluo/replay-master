@@ -1,0 +1,5 @@
+{
+  "REPLAYMASTER-REPLAY_MASTER_CARD.title": "重放大师",
+  "REPLAYMASTER-REPLAY_MASTER_CARD.description": "选择你手牌中的一张牌获得[gold]{Replay:diff()}[/gold]层[gold]重放[/gold]。",
+  "REPLAYMASTER_HAND_SELECT_REPLAY": "选择一张手牌获得重放。"
+}
