@@ -5,7 +5,7 @@
 ## 依赖
 
 - 游戏本体（本工程默认数据目录：`data_sts2_windows_x86_64`）
-- [BaseLib](https://github.com/Alchyr/BaseLib-StS2) **0.2.0**（`csproj` 固定 NuGet 版本；构建时会复制 `BaseLib.dll` / `BaseLib.pck` / `BaseLib.json` 到 `mods/BaseLib/`）
+- [BaseLib](https://github.com/Alchyr/BaseLib-StS2) **0.2.6**（`csproj` 固定 NuGet 版本；构建时会复制 `BaseLib.dll` / `BaseLib.pck` / `BaseLib.json` 到 `mods/BaseLib/`）
 
 ## 外部教程
 
@@ -49,7 +49,7 @@ dotnet build -c Debug
 
 ## 故障排除（BaseLib 版本 / 旧 DLL）
 
-若日志出现 **`BaseLib, Version=0.2.1.0`** 找不到，而游戏中已是 BaseLib **0.2.0**：说明 **`mods/ReplayMaster/ReplayMaster.dll` 仍是旧编译产物**。请在工程目录执行 **`dotnet clean -c Debug`** 后再 **`dotnet build -c Debug`**，确认 PostBuild 覆盖了游戏目录下的 dll；并用资源管理器查看 **`ReplayMaster.dll` 修改时间**是否为刚编译时间。
+若日志出现某 **`BaseLib, Version=…`** 找不到，而 `mods/BaseLib` 已是 **`ReplayMaster.csproj` 中 `BaseLibNuGetVersion`（当前 0.2.6）** 对应版本：说明 **`mods/ReplayMaster/ReplayMaster.dll` 仍是旧编译产物**。请在工程目录执行 **`dotnet clean -c Debug`** 后再 **`dotnet build -c Debug`**，确认 PostBuild 覆盖了游戏目录下的 dll；并用资源管理器查看 **`ReplayMaster.dll` 修改时间**是否为刚编译时间。
 
 `mods/ReplayMaster/` 内**只应保留清单 `mod_manifest.json`**。若仍有旧的 **`ReplayMaster.json`**，请删除，以免与当前约定冲突。
 
