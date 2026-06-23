@@ -1,5 +1,7 @@
+using System.IO;
 using BaseLib.Abstracts;
 using BaseLib.Utils;
+using Godot;
 using MegaCrit.Sts2.Core.CardSelection;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
@@ -18,6 +20,48 @@ public sealed class ReplayMasterCard : CustomCardModel
     private const string ReplayKey = "Replay";
 
     public override string PortraitPath => "res://ReplayMaster/images/cards/ReplayMaster.png";
+
+    private static Texture2D? s_cachedPortrait;
+    private static bool s_portraitTried;
+
+    /// <summary>
+    /// Tries the <c>res://</c> path first (works when a PCK is exported).
+    /// Falls back to loading from disk so the card art renders even without a PCK.
+    /// </summary>
+    public override Texture2D? CustomPortrait
+    {
+        get
+        {
+            if (s_portraitTried)
+                return s_cachedPortrait;
+            s_portraitTried = true;
+
+            // 1. Try PCK (res://)
+            if (ResourceLoader.Exists(PortraitPath))
+                return s_cachedPortrait = ResourceLoader.Load<Texture2D>(PortraitPath);
+
+            // 2. Try disk (no PCK needed)
+            var modDir = Path.GetDirectoryName(typeof(Entry).Assembly.Location);
+            if (!string.IsNullOrEmpty(modDir))
+            {
+                var diskPath = Path.Combine(modDir, "images", "cards", "ReplayMaster.png");
+                if (File.Exists(diskPath))
+                {
+                    try
+                    {
+                        var image = Image.LoadFromFile(diskPath);
+                        return s_cachedPortrait = ImageTexture.CreateFromImage(image);
+                    }
+                    catch
+                    {
+                        // Image loading failed; fall through to null
+                    }
+                }
+            }
+
+            return s_cachedPortrait; // null
+        }
+    }
 
     /// <summary>
     /// Card localization injected directly into the loc table at runtime.

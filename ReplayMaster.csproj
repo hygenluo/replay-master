@@ -149,6 +149,20 @@
     <Copy SourceFiles="$(BaseLibResolvedDir)\Content\BaseLib.pck" DestinationFolder="$(ModsPath)BaseLib\" />
     <Copy SourceFiles="$(BaseLibResolvedDir)\Content\BaseLib.json" DestinationFolder="$(ModsPath)BaseLib\" />
 
+    <!-- Disk‑based resources (no Godot PCK export needed) ──────────────────
+         Copies images/ and localization/ from the mod source directory to
+         mods/ReplayMaster/ so the mod can load them from disk at runtime.
+         When a ReplayMaster.pck is present, res:// paths take priority.      -->
+    <ItemGroup>
+      <_ModImages Include="ReplayMaster\images\**\*" />
+      <_ModLoc Include="ReplayMaster\localization\**\*.json" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_ModImages)"
+          DestinationFiles="@(_ModImages->'$(ModsPath)ReplayMaster\images\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(_ModLoc)"
+          DestinationFiles="@(_ModLoc->'$(ModsPath)ReplayMaster\localization\%(RecursiveDir)%(Filename)%(Extension)')" />
+
     <Copy SourceFiles="$(MSBuildProjectDirectory)\ReplayMaster.pck" DestinationFolder="$(ModsPath)ReplayMaster\" Condition="Exists('$(MSBuildProjectDirectory)\ReplayMaster.pck')" />
     <Warning
       Text="ReplayMaster.pck not found next to .csproj. Export PCK with Godot to mods/ReplayMaster or copy ReplayMaster.pck to project root before build."
