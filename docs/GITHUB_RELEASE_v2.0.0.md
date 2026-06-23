@@ -1,10 +1,10 @@
 ## 安装
 
-将 `mod_manifest.json`、`ReplayMaster.dll`、`ReplayMaster.pck` 放入游戏目录 `Slay the Spire 2/mods/ReplayMaster/`。需与 **BaseLib** 同时启用（本版构建目标为 **BaseLib 0.2.6**，与 `ReplayMaster.csproj` 中 `BaseLibNuGetVersion` 一致）。
+将 `mod_manifest.json`、`ReplayMaster.dll`、`ReplayMaster.pck` 放入游戏目录 `Slay the Spire 2/mods/ReplayMaster/`。需与 **BaseLib** 同时启用（构建时通过 `Version="*"` 自动解析最新稳定版，并在 NuGet 缓存中发现版本目录；构建日志输出形如 `BaseLib resolved → X.Y.Z`）。
 
 ## v2.0.0 变更摘要
 
-- **BaseLib**：NuGet / 部署用 BaseLib 固定为 **0.2.6**。
+- **BaseLib**：NuGet 通过 `Version="*"` 自动解析最新稳定版；部署时从 NuGet 缓存中自动发现版本目录。如需锁定版本：`dotnet build /p:BaseLibNuGetVersion=0.2.6`。
 - **本地化修复**：在 `cards` 表中补充引擎使用的键 `REPLAY_MASTER_CARD.title` / `REPLAY_MASTER_CARD.description`（与 `CardModel` 的 `Id.Entry` 规则一致），避免 `LocException` 与卡牌排序时的 `Failed to compare two elements in the array`。**更新后请重新用 Godot 导出 `ReplayMaster.pck` 再发布或安装。**
 
 ## 相对 v1.1.0
