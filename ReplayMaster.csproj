@@ -149,19 +149,17 @@
     <Copy SourceFiles="$(BaseLibResolvedDir)\Content\BaseLib.pck" DestinationFolder="$(ModsPath)BaseLib\" />
     <Copy SourceFiles="$(BaseLibResolvedDir)\Content\BaseLib.json" DestinationFolder="$(ModsPath)BaseLib\" />
 
-    <!-- Disk‑based resources (no Godot PCK export needed) ──────────────────
-         Copies images/ and localization/ from the mod source directory to
-         mods/ReplayMaster/ so the mod can load them from disk at runtime.
-         When a ReplayMaster.pck is present, res:// paths take priority.      -->
+    <!-- Disk‑based card art (no Godot PCK export needed).
+         Localization is handled by the Localization property on the card
+         model (locale‑aware, injected by BaseLib.ModelLocPatch).
+         DO NOT copy *.json into mods/ — ModManager recursively scans all
+         subdirectories for mod manifests and errors on non‑manifest JSON.  -->
     <ItemGroup>
       <_ModImages Include="ReplayMaster\images\**\*" />
-      <_ModLoc Include="ReplayMaster\localization\**\*.json" />
     </ItemGroup>
 
     <Copy SourceFiles="@(_ModImages)"
           DestinationFiles="@(_ModImages->'$(ModsPath)ReplayMaster\images\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(_ModLoc)"
-          DestinationFiles="@(_ModLoc->'$(ModsPath)ReplayMaster\localization\%(RecursiveDir)%(Filename)%(Extension)')" />
 
     <Copy SourceFiles="$(MSBuildProjectDirectory)\ReplayMaster.pck" DestinationFolder="$(ModsPath)ReplayMaster\" Condition="Exists('$(MSBuildProjectDirectory)\ReplayMaster.pck')" />
     <Warning

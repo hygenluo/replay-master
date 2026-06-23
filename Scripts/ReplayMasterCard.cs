@@ -64,14 +64,24 @@ public sealed class ReplayMasterCard : CustomCardModel
     }
 
     /// <summary>
-    /// Card localization injected directly into the loc table at runtime.
-    /// <b>No PCK export needed.</b> BaseLib.ModelLocPatch reads this property
-    /// and inserts the entries into LocTable._translations.
+    /// Card localization injected directly into the loc table at runtime by
+    /// BaseLib.ModelLocPatch (which runs <b>after</b> locale tables are loaded).
+    /// Uses OS.GetLocale() to return Chinese or English text — no PCK needed.
     /// </summary>
-    public override List<(string, string)>? Localization => new CardLoc(
-        "Replay Master",
-        "Choose a card in your hand to gain [gold]{Replay:diff()}[/gold] [gold]Replay[/gold]. Return this card to your hand."
-    );
+    public override List<(string, string)>? Localization
+    {
+        get
+        {
+            var locale = OS.GetLocale();
+            if (locale.StartsWith("zh"))
+                return new CardLoc(
+                    "重放大师",
+                    "选择你手牌中的一张牌获得[gold]{Replay:diff()}[/gold]层[gold]重放[/gold]。将此牌返回你的手牌。");
+            return new CardLoc(
+                "Replay Master",
+                "Choose a card in your hand to gain [gold]{Replay:diff()}[/gold] [gold]Replay[/gold]. Return this card to your hand.");
+        }
+    }
 
     public override IEnumerable<CardKeyword> CanonicalKeywords =>
         [CardKeyword.Innate, CardKeyword.Retain];
