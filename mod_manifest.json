@@ -4,8 +4,11 @@
   "author": "ReplayMaster",
   "description": "每名角色开局卡组额外一张无色技能「重放大师」：固有、保留，选择手牌一张牌获得重放层数，打出后将此牌返回手牌。",
   "version": "2.0.0",
+  "minGameVersion": "v0.107.1",
   "has_pck": false,
   "has_dll": true,
-  "dependencies": ["BaseLib"],
+  "dependencies": [
+    { "id": "BaseLib", "minVersion": "v3.3.2" }
+  ],
   "affects_gameplay": true
 }
