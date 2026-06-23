@@ -19,6 +19,16 @@ public sealed class ReplayMasterCard : CustomCardModel
 
     public override string PortraitPath => "res://ReplayMaster/images/cards/ReplayMaster.png";
 
+    /// <summary>
+    /// Card localization injected directly into the loc table at runtime.
+    /// <b>No PCK export needed.</b> BaseLib.ModelLocPatch reads this property
+    /// and inserts the entries into LocTable._translations.
+    /// </summary>
+    public override List<(string, string)>? Localization => new CardLoc(
+        "Replay Master",
+        "Choose a card in your hand to gain [gold]{Replay:diff()}[/gold] [gold]Replay[/gold]. Return this card to your hand."
+    );
+
     public override IEnumerable<CardKeyword> CanonicalKeywords =>
         [CardKeyword.Innate, CardKeyword.Retain];
 
