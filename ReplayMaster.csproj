@@ -1,4 +1,65 @@
 <Project Sdk="Godot.NET.Sdk/4.5.1">
+
+  <!-- ── Auto‑discover latest BaseLib version ────────────────────────────────
+       Task: scans the NuGet cache for alchyr.sts2.baselib version directories,
+       picks the highest, and outputs both the version string and the full
+       directory path. Falls back to BaseLibFallbackVersion when the cache is
+       empty (fresh clone, no restore yet).
+
+       How to pin a specific version (opt‑in):
+         dotnet build /p:BaseLibNuGetVersion=0.2.6
+  ──────────────────────────────────────────────────────────────────────────── -->
+  <UsingTask TaskName="FindLatestBaseLib" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <BaseLibRoot ParameterType="System.String" Required="true" />
+      <FallbackVersion ParameterType="System.String" Required="true" />
+      <LatestVersion ParameterType="System.String" Output="true" />
+      <LatestDir ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Code Type="Fragment" Language="cs">
+      <![CDATA[
+      try {
+          if (!Directory.Exists(BaseLibRoot))
+          {
+              LatestVersion = FallbackVersion;
+              LatestDir = Path.Combine(BaseLibRoot, FallbackVersion);
+              return true;
+          }
+
+          var best = Directory.GetDirectories(BaseLibRoot)
+              .Select(d => new { Path = d, Name = Path.GetFileName(d) })
+              .Select(x => new { x.Path, x.Name, Ver = Version.TryParse(x.Name, out var v) ? v : null })
+              .Where(x => x.Ver != null && File.Exists(Path.Combine(x.Path, "lib", "net9.0", "BaseLib.dll")))
+              .OrderByDescending(x => x.Ver)
+              .FirstOrDefault();
+
+          if (best != null)
+          {
+              LatestVersion = best.Name;
+              LatestDir = best.Path;
+          }
+          else
+          {
+              LatestVersion = FallbackVersion;
+              LatestDir = Path.Combine(BaseLibRoot, FallbackVersion);
+          }
+      }
+      catch
+      {
+          LatestVersion = FallbackVersion;
+          LatestDir = Path.Combine(BaseLibRoot, FallbackVersion);
+      }
+      ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <!-- ═══ Properties ════════════════════════════════════════════════════════ -->
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,13 +73,18 @@
     <Sts2Dir Condition="'$(Sts2Dir)' == ''">D:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2Dir>
     <Sts2DataDir>$(Sts2Dir)\data_sts2_windows_x86_64</Sts2DataDir>
     <ModsPath>$(Sts2Dir)\mods\</ModsPath>
-    <!-- BaseLibNuGetVersion must match PackageReference; BaseLib copy path is version-specific (no ** glob). -->
-    <BaseLibNuGetVersion>0.2.6</BaseLibNuGetVersion>
-    <BaseLibNuGetDir>$(NuGetPackageRoot)alchyr.sts2.baselib\$(BaseLibNuGetVersion)\</BaseLibNuGetDir>
+
+    <!-- BaseLib: auto‑discover latest by default; overrideable on CLI.
+         Version="*" in PackageReference tells NuGet "always latest stable".
+         The copy path is resolved dynamically by FindLatestBaseLib.         -->
+    <BaseLibNuGetVersion Condition="'$(BaseLibNuGetVersion)' == ''">*</BaseLibNuGetVersion>
+    <BaseLibFallbackVersion>0.2.6</BaseLibFallbackVersion>
+    <BaseLibPkgRoot>$(NuGetPackageRoot)alchyr.sts2.baselib\</BaseLibPkgRoot>
 
     <NoWarn>$(NoWarn);MSB3270</NoWarn>
   </PropertyGroup>
 
+  <!-- ═══ References ════════════════════════════════════════════════════════ -->
   <ItemGroup Condition="Exists('$(Sts2DataDir)')">
     <Reference Include="0Harmony">
       <HintPath>$(Sts2DataDir)\0Harmony.dll</HintPath>
@@ -31,7 +97,10 @@
     </Reference>
   </ItemGroup>
 
+  <!-- ═══ NuGet packages ════════════════════════════════════════════════════ -->
   <ItemGroup>
+    <!-- Version="*" → NuGet resolves to latest stable on every restore.
+         Pin with: dotnet restore /p:BaseLibNuGetVersion=0.2.6              -->
     <PackageReference Include="Alchyr.Sts2.BaseLib" Version="$(BaseLibNuGetVersion)" PrivateAssets="All" />
     <PackageReference Include="Alchyr.Sts2.ModAnalyzers" Version="0.1.6" PrivateAssets="All" />
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3">
@@ -41,18 +110,30 @@
     <AdditionalFiles Include="ReplayMaster\localization\**\*.json" />
   </ItemGroup>
 
+  <!-- ═══ Content ═══════════════════════════════════════════════════════════ -->
   <ItemGroup>
     <None Include="mod_manifest.json" />
     <None Include="export_presets.cfg" />
     <None Include="ReplayMaster\**\*" Exclude="ReplayMaster\**\*.cs" />
   </ItemGroup>
 
+  <!-- ═══ Resolve BaseLib (runs after restore, before Build) ════════════════ -->
+  <Target Name="ResolveBaseLibDir" BeforeTargets="Build">
+    <FindLatestBaseLib BaseLibRoot="$(BaseLibPkgRoot)"
+                       FallbackVersion="$(BaseLibFallbackVersion)">
+      <Output TaskParameter="LatestVersion" PropertyName="BaseLibResolvedVersion" />
+      <Output TaskParameter="LatestDir" PropertyName="BaseLibResolvedDir" />
+    </FindLatestBaseLib>
+    <Message Text="BaseLib resolved → $(BaseLibResolvedVersion)  ($(BaseLibResolvedDir))" Importance="high" />
+  </Target>
+
+  <!-- ═══ Post‑build: copy to mods/ ═════════════════════════════════════════ -->
   <Target Name="CopyToModsFolderOnBuild" AfterTargets="Build" Condition="Exists('$(Sts2DataDir)')">
-    <Message Text="Deploying ReplayMaster + BaseLib $(BaseLibNuGetVersion) to mods (clean copy)." Importance="high" />
+    <Message Text="Deploying ReplayMaster + BaseLib $(BaseLibResolvedVersion) to mods (clean copy)." Importance="high" />
 
     <Error
-      Text="BaseLib NuGet $(BaseLibNuGetVersion) not found at $(BaseLibNuGetDir)lib\net9.0\BaseLib.dll. Run dotnet restore."
-      Condition="!Exists('$(BaseLibNuGetDir)lib\net9.0\BaseLib.dll')" />
+      Text="BaseLib $(BaseLibResolvedVersion) not found at $(BaseLibResolvedDir)\lib\net9.0\BaseLib.dll. Run dotnet restore."
+      Condition="!Exists('$(BaseLibResolvedDir)\lib\net9.0\BaseLib.dll')" />
 
     <RemoveDir Directories="$(ModsPath)ReplayMaster" Condition="Exists('$(ModsPath)ReplayMaster')" />
     <RemoveDir Directories="$(ModsPath)BaseLib" Condition="Exists('$(ModsPath)BaseLib')" />
@@ -64,9 +145,9 @@
     <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(ModsPath)ReplayMaster\" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
     <Copy SourceFiles="mod_manifest.json" DestinationFolder="$(ModsPath)ReplayMaster\" />
 
-    <Copy SourceFiles="$(BaseLibNuGetDir)lib\net9.0\BaseLib.dll" DestinationFolder="$(ModsPath)BaseLib\" />
-    <Copy SourceFiles="$(BaseLibNuGetDir)Content\BaseLib.pck" DestinationFolder="$(ModsPath)BaseLib\" />
-    <Copy SourceFiles="$(BaseLibNuGetDir)Content\BaseLib.json" DestinationFolder="$(ModsPath)BaseLib\" />
+    <Copy SourceFiles="$(BaseLibResolvedDir)\lib\net9.0\BaseLib.dll" DestinationFolder="$(ModsPath)BaseLib\" />
+    <Copy SourceFiles="$(BaseLibResolvedDir)\Content\BaseLib.pck" DestinationFolder="$(ModsPath)BaseLib\" />
+    <Copy SourceFiles="$(BaseLibResolvedDir)\Content\BaseLib.json" DestinationFolder="$(ModsPath)BaseLib\" />
 
     <Copy SourceFiles="$(MSBuildProjectDirectory)\ReplayMaster.pck" DestinationFolder="$(ModsPath)ReplayMaster\" Condition="Exists('$(MSBuildProjectDirectory)\ReplayMaster.pck')" />
     <Warning
@@ -74,7 +155,9 @@
       Condition="!Exists('$(MSBuildProjectDirectory)\ReplayMaster.pck')" />
   </Target>
 
+  <!-- ═══ Early warning ═════════════════════════════════════════════════════ -->
   <Target Name="WarnMissingSts2" BeforeTargets="Build" Condition="!Exists('$(Sts2DataDir)')">
     <Warning Text="Slay the Spire 2 data not found at $(Sts2DataDir). Set Sts2Dir or install the game; build may fail." />
   </Target>
+
 </Project>
