@@ -76,23 +76,22 @@ public sealed class ReplayMasterCard : CustomCardModel
             if (locale.StartsWith("zh"))
                 return new CardLoc(
                     "重放大师",
-                    "选择你手牌中的一张牌获得[gold]{Replay:diff()}[/gold]层[gold]重放[/gold]。将此牌返回你的手牌。");
+                    "选择你手牌中的一张牌获得[gold]{Replay:diff()}[/gold]层[gold]重放[/gold]。");
             return new CardLoc(
                 "Replay Master",
-                "Choose a card in your hand to gain [gold]{Replay:diff()}[/gold] [gold]Replay[/gold]. Return this card to your hand.");
+                "Choose a card in your hand to gain [gold]{Replay:diff()}[/gold] [gold]Replay[/gold].");
         }
     }
 
     public override IEnumerable<CardKeyword> CanonicalKeywords =>
-        [CardKeyword.Innate, CardKeyword.Retain];
+        [CardKeyword.Innate];
 
     public override IEnumerable<DynamicVar> CanonicalVars =>
         [new IntVar(ReplayKey, 2m)];
 
     public override IEnumerable<IHoverTip> ExtraHoverTips =>
     [
-        HoverTipFactory.Static(StaticHoverTip.ReplayStatic),
-        HoverTipFactory.FromKeyword(CardKeyword.Retain)
+        HoverTipFactory.Static(StaticHoverTip.ReplayStatic)
     ];
 
     public ReplayMasterCard()
@@ -132,15 +131,6 @@ public sealed class ReplayMasterCard : CustomCardModel
             NCard.FindOnTable(target)?.UpdateVisuals(PileType.Hand, CardPreviewMode.Normal);
             CardCmd.Preview(target);
         }
-    }
-
-    public override async Task AfterCardPlayedLate(PlayerChoiceContext choiceContext, CardPlay cardPlay)
-    {
-        if (!ReferenceEquals(cardPlay.Card, this))
-            return;
-
-        if (Pile?.Type == PileType.Play)
-            await CardPileCmd.Add(this, PileType.Hand);
     }
 
     public override void OnUpgrade()
